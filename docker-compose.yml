@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: library-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: librarydb
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - library-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d librarydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  library:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: library
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/librarydb
+      DATABASE_USER: library
+      DATABASE_PASSWORD: changeme
+      PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  library-postgres-data:
